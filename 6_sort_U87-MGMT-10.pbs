@@ -1,0 +1,39 @@
+#!/bin/bash
+
+##########################
+#                        #
+#   The PBS directives   #
+#                        #
+##########################
+
+#PBS -N U87-MGMT-10_sort
+#PBS -l nodes=1:ppn=10
+#PBS -l walltime=23:59:59
+#PBS -M caim@usc.edu
+#PBS -m abe
+
+##########################################
+#                                        #
+#   Output some useful job information.  #
+#                                        #
+##########################################
+
+echo ------------------------------------------------------
+echo -n 'Job is running on node '; cat $PBS_NODEFILE
+echo ------------------------------------------------------
+echo PBS: qsub is running on $PBS_O_HOST
+echo PBS: originating queue is $PBS_O_QUEUE
+echo PBS: executing queue is $PBS_QUEUE
+echo PBS: working directory is $PBS_O_WORKDIR
+echo PBS: execution mode is $PBS_ENVIRONMENT
+echo PBS: job identifier is $PBS_JOBID
+echo PBS: job name is $PBS_JOBNAME
+echo PBS: node file is $PBS_NODEFILE
+echo PBS: current home directory is $PBS_O_HOME
+echo PBS: PATH = $PBS_O_PATH
+echo ------------------------------------------------------
+
+cd $PBS_O_WORKDIR
+/home/rcf-proj/wl/caim/usr/samtools-1.3.1/samtools view -bS U87-MGMT-10_combined_reads_REdig.sam > U87-MGMT-10_combined_reads_REdig.bam
+/home/rcf-proj/wl/caim/usr/sambamba_v0.6.5 sort -t 10 -m 4G -n -p -o U87-MGMT-10_combined_reads_REdig_sort.bam U87-MGMT-10_combined_reads_REdig.bam
+/home/rcf-proj/wl/caim/usr/samtools-1.3.1/samtools view -h -o U87-MGMT-10_combined_reads_REdig_sort.sam U87-MGMT-10_combined_reads_REdig_sort.bam
