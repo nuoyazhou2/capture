@@ -528,6 +528,7 @@ while ( my $line = <INFH> )    #loops through all the lines of the sam file
 	my $pe       = $2;
 	my $readno   = $3;
 
+	$data{$readname}{$pe}{"NoOfFrags"} = $readno;
       # Saving this for the last read - being handled outside the while loop
 	$saveReadname = $readname;
 
@@ -894,46 +895,52 @@ sub readAnalysisLoop {
 	# Resolving the identity of the capture fragments.
         for ( my $pe = 1; $pe <= 2; $pe++ )    # loops through PE1 and PE2
         {
-            for ( my $readno = 0; $readno < 4; $readno++ )    # loops through up to 4 fragments in each paired end read
-            {
-                if ( defined $data{$analysis_read}{$pe}{$readno}{"type"} and $data{$analysis_read}{$pe}{$readno}{"type"} eq "capture") {
-		    for (my $oligo = 0; $oligo < ( scalar(@oligo_data) ); $oligo++ )
-		    {
-			if (
-			    ($data{$analysis_read}{$pe}{$readno}{"chr"} eq $oligo_data[$oligo][1])
-			    and ( $data{$analysis_read}{$pe}{$readno}{"readstart"} >= $oligo_data[$oligo][2]
-				and $data{$analysis_read}{$pe}{$readno}{"readend"} <= $oligo_data[$oligo][3] )
-			  )
+	    if (defined $data{$analysis_read}{$pe}{"NoOfFrags"}) {   
+		for ( my $readno = 0; $readno <= $data{$analysis_read}{$pe}{"NoOfFrags"}; $readno++ )
+		{
+		    if ( defined $data{$analysis_read}{$pe}{$readno}{"type"} and $data{$analysis_read}{$pe}{$readno}{"type"} eq "capture") {
+			for (my $oligo = 0; $oligo < ( scalar(@oligo_data) ); $oligo++ )
 			{
-			    my $tempname = "" . $oligo_data[$oligo][0] . "";
-			    $capturenames{$tempname}++;
+			    if (
+				($data{$analysis_read}{$pe}{$readno}{"chr"} eq $oligo_data[$oligo][1])
+				and ( $data{$analysis_read}{$pe}{$readno}{"readstart"} >= $oligo_data[$oligo][2]
+				    and $data{$analysis_read}{$pe}{$readno}{"readend"} <= $oligo_data[$oligo][3] )
+			      )
+			    {
+				my $tempname = "" . $oligo_data[$oligo][0] . "";
+				$capturenames{$tempname}++;
+			    }
 			}
 		    }
-                }
-            }
+		}
+	    }
         }
 
         # Resolving the count of exclusion fragments.
         for ( my $pe = 1 ; $pe <= 2 ; $pe++ )    # loops through PE1 and PE2
         {
-            for ( my $readno = 0; $readno < 4; $readno++ )    # loops through up to 4 fragments in each paired end read
-            {
-                if ( defined $data{$analysis_read}{$pe}{$readno}{"type"} and $data{$analysis_read}{$pe}{$readno}{"type"} eq "proximity exclusion") {     
-                    $exclusioncount++;
-                }
-
-            }
+	    if (defined $data{$analysis_read}{$pe}{"NoOfFrags"}) {   
+		for ( my $readno = 0; $readno <= $data{$analysis_read}{$pe}{"NoOfFrags"}; $readno++ )
+		{
+		    if ( defined $data{$analysis_read}{$pe}{$readno}{"type"} and $data{$analysis_read}{$pe}{$readno}{"type"} eq "proximity exclusion") {     
+			$exclusioncount++;
+		    }
+    
+		}
+	    }
         }
 
         # Resolving the count of reporter fragments.
         for ( my $pe = 1; $pe <= 2; $pe++ )    # loops through PE1 and PE2
         {
-            for ( my $readno = 0; $readno < 4; $readno++ )    # loops through up to 4 fragments in each paired end read
-            {
-                if ( defined $data{$analysis_read}{$pe}{$readno}{"type"} and $data{$analysis_read}{$pe}{$readno}{"type"} eq "reporter") {
-                    $reportercount++;
-                }
-            }
+	    if (defined $data{$analysis_read}{$pe}{"NoOfFrags"}) {   
+		for ( my $readno = 0; $readno <= $data{$analysis_read}{$pe}{"NoOfFrags"}; $readno++ )
+		{
+		    if ( defined $data{$analysis_read}{$pe}{$readno}{"type"} and $data{$analysis_read}{$pe}{$readno}{"type"} eq "reporter") {
+			$reportercount++;
+		    }
+		}
+	    }
         }
 
         foreach my $foundoligo ( sort keys %capturenames ) {
@@ -946,29 +953,29 @@ sub readAnalysisLoop {
     # Resolving the identity of the capture fragments - DONE.
     #---------------------------------------------------------------------------------------
 
-    # Now we need to take into account the "weird ones" which leak through and claim to  have composition ""
-
-    # If we have only whitespace in $capturename..
-    if ( $capturename =~ /^\s*$/ ) {
-        $weAnalyseThisRead = 0;
-	$counters{"99e capture name whitespace:"}++;
-    }
-
-    # If we have only "" in $capturename..
-    if ( $capturename eq '' ) {
-        $weAnalyseThisRead = 0;
-	$counters{"99ee capture name empty:"}++;
-    }
-
-    # Then we take care of the ones which leak through and have 0 reporter fragments
-    if ( $reportercount == 0 ) {
-        $weAnalyseThisRead = 0;
-	$counters{"99eee zero reporter fragment:"}++;
-    }
-
+    
     #---------------------------------------------------------------------------------------
     # Now, printing out what we have - after all the above filters
     if ( $weAnalyseThisRead == 1 ) {
+	# Now we need to take into account the "weird ones" which leak through and claim to  have composition ""
+	# If we have only whitespace in $capturename..
+	if ( $capturename =~ /^\s*$/ ) {
+	    $weAnalyseThisRead = 0;
+	    $counters{"99e capture name whitespace:"}++;
+	}
+    
+	# If we have only "" in $capturename..
+	if ( $capturename eq '' ) {
+	    $weAnalyseThisRead = 0;
+	    $counters{"99ee capture name empty:"}++;
+	}
+    
+	# Then we take care of the ones which leak through and have 0 reporter fragments
+	if ( $reportercount == 0 ) {
+	    $weAnalyseThisRead = 0;
+	    $counters{"99eee zero reporter fragment:"}++;
+	}
+
         $counters{"11e Total number of reads having captures in composition $capturecomposition:"}++;
         $counters{"11ee Total number of reads having captures in composition $capturecomposition, having $reportercount reporters and $exclusioncount exclusion fragments:"}++;
 
@@ -1096,22 +1103,24 @@ sub readAnalysisLoop {
             # Counters for capture and exclusion fragments after duplicate-removal
             for ( my $pe = 1 ; $pe <= 2 ; $pe++ )    # loops through PE1 and PE2
             {
-                for ( my $readno = 0; $readno < 4; $readno++ )    # loops through up to 4 fragments in each paired end read
-                {
-                    $allFragCounter++;
-                    if ( defined $data{$analysis_read}{$pe}{$readno}{"type"} ) {
-                        $informativeCounter++;
-                        if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "capture" ) {
-                            $counters{"16a Capture fragments (After PCR duplicate removal):"}++;
-                        }
-                        if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "proximity exclusion" ) {
-                            $counters{"16b Proximity exclusion fragments (After PCR duplicate removal):"}++;
-                        }
-                        if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "reporter" ) {
-                            $counters{"16c Reporter fragments (After PCR duplicate removal):"}++;
-                        }
-                    }
-                }
+		if (defined $data{$analysis_read}{$pe}{"NoOfFrags"}) {   
+		    for ( my $readno = 0; $readno <= $data{$analysis_read}{$pe}{"NoOfFrags"}; $readno++ )
+		    {
+			$allFragCounter++;
+			if ( defined $data{$analysis_read}{$pe}{$readno}{"type"} ) {
+			    $informativeCounter++;
+			    if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "capture" ) {
+				$counters{"16a Capture fragments (After PCR duplicate removal):"}++;
+			    }
+			    if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "proximity exclusion" ) {
+				$counters{"16b Proximity exclusion fragments (After PCR duplicate removal):"}++;
+			    }
+			    if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "reporter" ) {
+				$counters{"16c Reporter fragments (After PCR duplicate removal):"}++;
+			    }
+			}
+		    }
+		}
             }
 
             $counters{"16d Reads having ". $informativeCounter. " informative fragments (after PCR duplicate whole-read removal):"}++;
@@ -1123,161 +1132,163 @@ sub readAnalysisLoop {
 
             for ( my $pe = 1 ; $pe <= 2 ; $pe++ )    # loops through PE1 and PE2
             {
-                for ( my $readno = 0; $readno < 4; $readno++ )    # loops through up to 4 fragments in each paired end read
-                {
-                    if (defined $data{$analysis_read}{$pe}{$readno}{"whole line"} ) {
-                        print ALLSAMFH $data{$analysis_read}{$pe}{$readno}{"whole line"};
-                    }
-                    if (defined $data{$analysis_read}{$pe}{$readno}{"type"}) {# checks that the fragment is not CIGAR parse error or unmapped read
-                        print ALLTYPEDSAMFH $data{$analysis_read}{$pe}{$readno}{"whole line"};
-
-			#------------------------------------------------------------------------------------------------------------------
-			# ANALYSING THE REPORTER FRAGMENTS - step 1) - if clauses to restrict to non-duplicates (if STRINGENT requested)
-			#------------------------------------------------------------------------------------------------------------------
-
-                        my $duplicate_string;
-
-                        if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "reporter" ) {
-                            $counters{"23 Reporters before final filtering steps:"}++;
-                            $counters{ $data{$analysis_read}{"captures"} . " 23 Reporters before final filtering steps:"}++;
-
-                            $duplicate_string =
-                                $data{$analysis_read}{"captures"}
-                              . $data{$analysis_read}{$pe}{$readno}{"chr"} . ":"
-                              . $data{$analysis_read}{$pe}{$readno}{"readstart"}
-                              . "-"
-                              . $data{$analysis_read}{$pe}{$readno}{"readend"};
-
-                            if ( defined $duplicates{$duplicate_string} ) {
-                                $counters{"24 Duplicate reporters (duplicate-excluded if stringent was on):"}++;
-                                $counters{ $data{$analysis_read}{"captures"} . " 24 Duplicate reporters (duplicate-excluded if stringent was on):"}++;
-                            }
-
-                            if ( ( $stringent == 1 )
-                                and ( defined $duplicates{$duplicate_string} ) )
-                            {
-				# We jump over duplicates if we have stringent on.
-                                $duplicates{$duplicate_string}++;
-				
+		if (defined $data{$analysis_read}{$pe}{"NoOfFrags"}) {   
+		    for ( my $readno = 0; $readno <= $data{$analysis_read}{$pe}{"NoOfFrags"}; $readno++ )
+		    {
+			if (defined $data{$analysis_read}{$pe}{$readno}{"whole line"} ) {
+			    print ALLSAMFH $data{$analysis_read}{$pe}{$readno}{"whole line"};
+			}
+			if (defined $data{$analysis_read}{$pe}{$readno}{"type"}) {# checks that the fragment is not CIGAR parse error or unmapped read
+			    print ALLTYPEDSAMFH $data{$analysis_read}{$pe}{$readno}{"whole line"};
+    
+			    #------------------------------------------------------------------------------------------------------------------
+			    # ANALYSING THE REPORTER FRAGMENTS - step 1) - if clauses to restrict to non-duplicates (if STRINGENT requested)
+			    #------------------------------------------------------------------------------------------------------------------
+    
+			    my $duplicate_string;
+    
+			    if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "reporter" ) {
+				$counters{"23 Reporters before final filtering steps:"}++;
+				$counters{ $data{$analysis_read}{"captures"} . " 23 Reporters before final filtering steps:"}++;
+    
+				$duplicate_string =
+				    $data{$analysis_read}{"captures"}
+				  . $data{$analysis_read}{$pe}{$readno}{"chr"} . ":"
+				  . $data{$analysis_read}{$pe}{$readno}{"readstart"}
+				  . "-"
+				  . $data{$analysis_read}{$pe}{$readno}{"readend"};
+    
+				if ( defined $duplicates{$duplicate_string} ) {
+				    $counters{"24 Duplicate reporters (duplicate-excluded if stringent was on):"}++;
+				    $counters{ $data{$analysis_read}{"captures"} . " 24 Duplicate reporters (duplicate-excluded if stringent was on):"}++;
+				}
+    
+				if ( ( $stringent == 1 )
+				    and ( defined $duplicates{$duplicate_string} ) )
+				{
+				    # We jump over duplicates if we have stringent on.
+				    $duplicates{$duplicate_string}++;
+				    
+				    chomp(my $wholeline = $data{$analysis_read}{$pe}{$readno}{"whole line"});
+				    print CAPSAMFH $wholeline;
+				    print CAPSAMFH "\tCO:Z:";
+				    print CAPSAMFH $data{$analysis_read}{"captures"};
+				    print CAPSAMFH "_REPDUPSTR\n";
+				}
+				else {
+				    # This is not only ++ but also "make this to exist" - the counterpart of the above if exists duplicates{duplString}
+				    $duplicates{$duplicate_string}++;
+    
+				    #------------------------------------------------------------------------------------------------------------------
+				    # ANALYSING THE REPORTER FRAGMENTS - step 2) - comparing to DpnII fragments, and reporting those.
+				    #------------------------------------------------------------------------------------------------------------------
+				    
+				    #print COORDSTRINGFH "$pe:$readno\t".$analysis_read."\t".$data{$analysis_read}{"captures"}."\t".$data{$analysis_read}{$pe}{$readno}{"type"}."\n"; #For debugging reads that are reported
+				    #print "$pe:$readno\t".$analysis_read."\t".$data{$analysis_read}{"captures"}."\t".$data{$analysis_read}{$pe}{$readno}{"type"}."\n";
+				    
+				    #This maps the fragment onto the dpnII fragment using the binary search subroutine, which returns the position of the matching fragment in the
+				    #hash of arrays %dpn_data - which is in the format %dpn_data{chromosome}[start position]
+    
+				    my $chr = $data{$analysis_read}{$pe}{$readno}{"chr"};
+				    my $readstart = $data{$analysis_read}{$pe}{$readno}{"readstart"};
+    
+				    my ( $start, $end ) = binary_search(
+					\@{ $dpn_data{$chr} },
+					$data{$analysis_read}{$pe}{$readno}{"readstart"},
+					$data{$analysis_read}{$pe}{$readno}{"readend"},
+					\%counters
+				    );
+    
+				    #print "returned values: $start-$end\t";
+    
+				    if ( ( $start eq "error" )
+					or ( $end eq "error" ) )
+				    {
+					$counters{"25e Error in Reporter fragment assignment to in silico digested genome (see 25ee for details):"}++;
+					$counters{ $data{$analysis_read}{"captures"} . " 25e Error in Reporter fragment assignment to in silico digested genome (see 25ee for details):"}++;
+				    }
+				    elsif ( defined $reporter_dpn{"$chr:$start-$end"} )
+				    {
+					$reporter_dpn{"$chr:$start-$end"}++;
+					$counters{"25 Reporter fragments reporting the same RE fragment within a single read (duplicate-excluded):"}++;
+					$counters{ $data{$analysis_read}{"captures"} . " 25 Reporter fragments reporting the same RE fragment within a single read (duplicate-excluded):"}++;
+    
+					chomp(my $wholeline = $data{$analysis_read}{$pe}{$readno}{"whole line"});
+					print CAPSAMFH $wholeline;
+					print CAPSAMFH "\tCO:Z:";
+					print CAPSAMFH $data{$analysis_read}{"captures"};
+					print CAPSAMFH "_REPDUP\n";
+    
+				    }
+				    else {
+					$reporter_dpn{"$chr:$start-$end"}++;
+    
+					$data{$analysis_read}{$pe}{$readno}{"fragstart"} = $start;
+					$data{$analysis_read}{$pe}{$readno}{"fragend"} = $end;
+    
+					#This transfers the positions of the dpnII fragments into the hash %fraghash
+					# 				%fraghash{"full"}{chromosome}{fragment start}{"value"}= value
+					# 				%fraghash{"full"}{chromosome}{fragment start}{"end"}= fragment end
+    
+					$fraghash{"full"}{$data{$analysis_read}{"captures"}}{$data{$analysis_read}{$pe}{$readno}{"chr"}}{$data{$analysis_read}{$pe}{$readno}
+					      {"fragstart"}}{"value"}++;
+					$fraghash{"full"}{$data{$analysis_read}{"captures"}}{$data{$analysis_read}{$pe}{$readno}{"chr"}}{$data{$analysis_read}{$pe}{$readno}
+					      {"fragstart"}}{"end"} = $data{$analysis_read}{$pe}{$readno}{"fragend"};
+    
+					#This puts the data for the matching lines into the %samhash
+					push @{ $samhash{ $data{$analysis_read}{"captures"}}},
+					  $data{$analysis_read}{$pe}{$readno}{"whole line"};
+    
+					chomp(my $wholeline = $data{$analysis_read}{$pe}{$readno}{"whole line"});
+					print CAPSAMFH $wholeline;
+					print CAPSAMFH "\tCO:Z:";
+					print CAPSAMFH $data{$analysis_read}{"captures"};
+					print CAPSAMFH "_REP\n";
+    
+					$counters{"26 Actual reported fragments:"}++;
+					$counters{ $data{$analysis_read}{"captures"} . " 26 Reporter fragments (final count):"}++;
+				    }
+				}
+			    }
+    
+			    #------------------------------------------------------------------------------------------------------------------
+			    # ANALYSING THE CAPTURE FRAGMENTS
+			    #------------------------------------------------------------------------------------------------------------------
+			    if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "capture" ) {
+				push @{ $cap_samhash{ $data{$analysis_read}{"captures"} } },
+				  $data{$analysis_read}{$pe}{$readno}{"whole line"};
+				$counters{ $data{$analysis_read}{"captures"} . " 27 Capture fragments (final count):" }++;
+				push @{ $samhash{ $data{$analysis_read}{"captures"} } },
+				  $data{$analysis_read}{$pe}{$readno}{"whole line"};
+				#$counters{"Counters with reporters"}++;
 				chomp(my $wholeline = $data{$analysis_read}{$pe}{$readno}{"whole line"});
-                                print CAPSAMFH $wholeline;
-                                print CAPSAMFH "\tCO:Z:";
-                                print CAPSAMFH $data{$analysis_read}{"captures"};
-                                print CAPSAMFH "_REPDUPSTR\n";
-                            }
-                            else {
-				# This is not only ++ but also "make this to exist" - the counterpart of the above if exists duplicates{duplString}
-                                $duplicates{$duplicate_string}++;
-
-				#------------------------------------------------------------------------------------------------------------------
-				# ANALYSING THE REPORTER FRAGMENTS - step 2) - comparing to DpnII fragments, and reporting those.
-				#------------------------------------------------------------------------------------------------------------------
-				
-				#print COORDSTRINGFH "$pe:$readno\t".$analysis_read."\t".$data{$analysis_read}{"captures"}."\t".$data{$analysis_read}{$pe}{$readno}{"type"}."\n"; #For debugging reads that are reported
-				#print "$pe:$readno\t".$analysis_read."\t".$data{$analysis_read}{"captures"}."\t".$data{$analysis_read}{$pe}{$readno}{"type"}."\n";
-				
-				#This maps the fragment onto the dpnII fragment using the binary search subroutine, which returns the position of the matching fragment in the
-				#hash of arrays %dpn_data - which is in the format %dpn_data{chromosome}[start position]
-
-                                my $chr = $data{$analysis_read}{$pe}{$readno}{"chr"};
-                                my $readstart = $data{$analysis_read}{$pe}{$readno}{"readstart"};
-
-                                my ( $start, $end ) = binary_search(
-                                    \@{ $dpn_data{$chr} },
-                                    $data{$analysis_read}{$pe}{$readno}{"readstart"},
-                                    $data{$analysis_read}{$pe}{$readno}{"readend"},
-                                    \%counters
-                                );
-
-                                #print "returned values: $start-$end\t";
-
-                                if ( ( $start eq "error" )
-                                    or ( $end eq "error" ) )
-                                {
-                                    $counters{"25e Error in Reporter fragment assignment to in silico digested genome (see 25ee for details):"}++;
-                                    $counters{ $data{$analysis_read}{"captures"} . " 25e Error in Reporter fragment assignment to in silico digested genome (see 25ee for details):"}++;
-                                }
-                                elsif ( defined $reporter_dpn{"$chr:$start-$end"} )
-                                {
-                                    $reporter_dpn{"$chr:$start-$end"}++;
-                                    $counters{"25 Reporter fragments reporting the same RE fragment within a single read (duplicate-excluded):"}++;
-                                    $counters{ $data{$analysis_read}{"captures"} . " 25 Reporter fragments reporting the same RE fragment within a single read (duplicate-excluded):"}++;
-
-				    chomp(my $wholeline = $data{$analysis_read}{$pe}{$readno}{"whole line"});
-                                    print CAPSAMFH $wholeline;
-                                    print CAPSAMFH "\tCO:Z:";
-                                    print CAPSAMFH $data{$analysis_read}{"captures"};
-                                    print CAPSAMFH "_REPDUP\n";
-
-                                }
-                                else {
-                                    $reporter_dpn{"$chr:$start-$end"}++;
-
-                                    $data{$analysis_read}{$pe}{$readno}{"fragstart"} = $start;
-                                    $data{$analysis_read}{$pe}{$readno}{"fragend"} = $end;
-
-				    #This transfers the positions of the dpnII fragments into the hash %fraghash
-				    # 				%fraghash{"full"}{chromosome}{fragment start}{"value"}= value
-				    # 				%fraghash{"full"}{chromosome}{fragment start}{"end"}= fragment end
-
-                                    $fraghash{"full"}{$data{$analysis_read}{"captures"}}{$data{$analysis_read}{$pe}{$readno}{"chr"}}{$data{$analysis_read}{$pe}{$readno}
-                                          {"fragstart"}}{"value"}++;
-                                    $fraghash{"full"}{$data{$analysis_read}{"captures"}}{$data{$analysis_read}{$pe}{$readno}{"chr"}}{$data{$analysis_read}{$pe}{$readno}
-                                          {"fragstart"}}{"end"} = $data{$analysis_read}{$pe}{$readno}{"fragend"};
-
-				    #This puts the data for the matching lines into the %samhash
-                                    push @{ $samhash{ $data{$analysis_read}{"captures"}}},
-                                      $data{$analysis_read}{$pe}{$readno}{"whole line"};
-
-				    chomp(my $wholeline = $data{$analysis_read}{$pe}{$readno}{"whole line"});
-                                    print CAPSAMFH $wholeline;
-                                    print CAPSAMFH "\tCO:Z:";
-                                    print CAPSAMFH $data{$analysis_read}{"captures"};
-                                    print CAPSAMFH "_REP\n";
-
-                                    $counters{"26 Actual reported fragments:"}++;
-                                    $counters{ $data{$analysis_read}{"captures"} . " 26 Reporter fragments (final count):"}++;
-                                }
-                            }
-                        }
-
-			#------------------------------------------------------------------------------------------------------------------
-			# ANALYSING THE CAPTURE FRAGMENTS
-			#------------------------------------------------------------------------------------------------------------------
-                        if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "capture" ) {
-                            push @{ $cap_samhash{ $data{$analysis_read}{"captures"} } },
-                              $data{$analysis_read}{$pe}{$readno}{"whole line"};
-                            $counters{ $data{$analysis_read}{"captures"} . " 27 Capture fragments (final count):" }++;
-                            push @{ $samhash{ $data{$analysis_read}{"captures"} } },
-                              $data{$analysis_read}{$pe}{$readno}{"whole line"};
-                            #$counters{"Counters with reporters"}++;
-			    chomp(my $wholeline = $data{$analysis_read}{$pe}{$readno}{"whole line"});
-                            print CAPSAMFH $wholeline;
-                            print CAPSAMFH "\tCO:Z:";
-                            print CAPSAMFH $data{$analysis_read}{"captures"};
-                            print CAPSAMFH "_CAP\n";
-
-                        }
-
-			#------------------------------------------------------------------------------------------------------------------
-			# ANALYSING THE PROXIMITY EXCLUSION FRAGMENTS
-			#------------------------------------------------------------------------------------------------------------------
-                        if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "proximity exclusion" ) {
-                            $counters{ $data{$analysis_read}{"captures"} . " 28 Proximity exclusions (final count):" }++;
-			    chomp(my $wholeline = $data{$analysis_read}{$pe}{$readno}{"whole line"});
-                            print CAPSAMFH $wholeline;
-                            print CAPSAMFH "\tCO:Z:";
-                            print CAPSAMFH $data{$analysis_read}{"captures"};
-                            print CAPSAMFH "_EXC\n";
-                        }
-
-                    }
-		
-		#------------------------------------------------------------------------------------------------------------------
-		# The "end elses" for RESTRICTING ANALYSIS to only reads and fragments of interest - various if clauses to dig deeper only if we really want to..
-		#------------------------------------------------------------------------------------------------------------------
-
-                }    # This is the FRAGMENTS for loop end
+				print CAPSAMFH $wholeline;
+				print CAPSAMFH "\tCO:Z:";
+				print CAPSAMFH $data{$analysis_read}{"captures"};
+				print CAPSAMFH "_CAP\n";
+    
+			    }
+    
+			    #------------------------------------------------------------------------------------------------------------------
+			    # ANALYSING THE PROXIMITY EXCLUSION FRAGMENTS
+			    #------------------------------------------------------------------------------------------------------------------
+			    if ( $data{$analysis_read}{$pe}{$readno}{"type"} eq "proximity exclusion" ) {
+				$counters{ $data{$analysis_read}{"captures"} . " 28 Proximity exclusions (final count):" }++;
+				chomp(my $wholeline = $data{$analysis_read}{$pe}{$readno}{"whole line"});
+				print CAPSAMFH $wholeline;
+				print CAPSAMFH "\tCO:Z:";
+				print CAPSAMFH $data{$analysis_read}{"captures"};
+				print CAPSAMFH "_EXC\n";
+			    }
+    
+			}
+		    
+		    #------------------------------------------------------------------------------------------------------------------
+		    # The "end elses" for RESTRICTING ANALYSIS to only reads and fragments of interest - various if clauses to dig deeper only if we really want to..
+		    #------------------------------------------------------------------------------------------------------------------
+    
+		    }    # This is the FRAGMENTS for loop end
+		}
             }    # This is the PE for loop end
         }    # We passed duplicate filter
 
