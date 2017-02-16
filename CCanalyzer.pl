@@ -116,6 +116,13 @@ use Pod::Usage;
 
 =cut
 
+#########################################################################################################################
+# 1. *_all_capture_reads_$version.sam => ALLSAMFH: all fragments
+# 2. *_all_typed_reads_$version.sam => ALLTYPEDSAMFH: all fragments that are not CIGAR parse error or unmapped
+# 3. *_reported_capture_reads_$version.sam => CAPSAMFH: fragment pair of "reporter"+"capture"+"proximity exclusion"; The count should be smaller than that in 2, as some are not assigned to restriction fragment, see 25e 
+# 4. *$version_$oligo_data[$i][0].sam => for each viewpoint [i] in oligo file, print the fragment pair of "reporter"+"capture" 
+# 5. *$version_capture_$oligo_data[$i][0].sam => for each viewpoint [i] in oligo file, print the fragment "capture"
+#########################################################################################################################
 
 # Hardcoded parameters :
 my $email   = 'caimingyang08nju@gmail.com';
@@ -279,7 +286,7 @@ if ($use_dump) {
     open( DUMPOUTPUT, ">$outputfilename\_dump.sam" ) or die "Cannot open file $outputfilename\_dump.sam: $!";
 }
 open( ALLSAMFH, ">$all_sam_filename" ) or die "Cannot open file $all_sam_filename: $!";
-open( ALLTYPEDSAMFH, ">$all_typed_sam_filename" ) or die "Cannot open file $all_sam_filename: $!";
+open( ALLTYPEDSAMFH, ">$all_typed_sam_filename" ) or die "Cannot open file $all_typed_sam_filename: $!";
 open( CAPSAMFH, ">$cap_sam_filename" ) or die "Cannot open file $cap_sam_filename: $!";
 open( COORDSTRINGFH, ">$coord_filename" ) or die "Cannot open file $coord_filename: $!";
 
