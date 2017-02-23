@@ -1,0 +1,46 @@
+#!/bin/bash
+
+##########################
+#                        #
+#   The PBS directives   #
+#                        #
+##########################
+
+#PBS -N retreive_genes
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=23:59:59
+#PBS -M caim@usc.edu
+#PBS -m abe
+
+##########################################
+#                                        #
+#   Output some useful job information.  #
+#                                        #
+##########################################
+
+echo ------------------------------------------------------
+echo -n 'Job is running on node '; cat $PBS_NODEFILE
+echo ------------------------------------------------------
+echo PBS: qsub is running on $PBS_O_HOST
+echo PBS: originating queue is $PBS_O_QUEUE
+echo PBS: executing queue is $PBS_QUEUE
+echo PBS: working directory is $PBS_O_WORKDIR
+echo PBS: execution mode is $PBS_ENVIRONMENT
+echo PBS: job identifier is $PBS_JOBID
+echo PBS: job name is $PBS_JOBNAME
+echo PBS: node file is $PBS_NODEFILE
+echo PBS: current home directory is $PBS_O_HOME
+echo PBS: PATH = $PBS_O_PATH
+echo ------------------------------------------------------
+
+cd $PBS_O_WORKDIR
+
+#awk 'OFS="\t" {if ($3=="gene") {print $1,$4-1,$5,$18,$14,$7}}' /staging/wl/caim/seqlib/Homo_sapiens/GENCODE/gencode.v19.annotation.gtf | tr -d '";' > gencode.v19.annotation.bed
+for vp in rs1041449 rs10486567 rs11598549 rs12769019 rs12773833 rs1574259 rs1741708 rs4694176 rs4919743 rs55958994 rs5919428 rs61085429 rs7094325 rs7591218 rs8134657 rs9655205
+do
+        echo $vp 
+	awk 'NR>1 {print} ' ../overlap/${vp}.txt | bedtools window -w 10000 -a stdin -b gencode.v19.annotation.bed > ${vp}_temp.txt
+	Rscript aggregate.R ${vp}
+	sort -k1,1 -k2,2n ${vp}_genes_temp.txt > ${vp}_genes.txt
+	sed -i '1i\chrom\tstart\tend\tnum\tlist\t22Rv1_rep1\t22Rv1_rep2\t22Rv1_rep3\tRWPE1_rep1\tRWPE1_rep2\tRWPE1_rep3\tgenes' ${vp}_genes.txt
+done
